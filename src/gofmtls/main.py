@@ -1,11 +1,35 @@
 import argparse
+import json
 import socket
-from typing import Optional
+from typing import Any, Optional, Self, TypeAlias
 import pydantic
 
 class Data(pydantic.BaseModel):
-  header: dict[str, str]
-  body: str
+  header: dict[bytes, bytes]
+  body: bytes
+
+  @classmethod
+  def from_body_bytes_with_parse(cls, body: bytes) -> Self:
+    header, body = body.split(b'\r\n\r\n', 1)
+    header = dict(line.split(b': ', 1) for line in header.split(b'\n'))
+    return cls(header=header, body=body)
+
+  @classmethod
+  def from_body_dict(cls, d: dict[str, Any]) -> Self:
+    body = json.dumps(d).encode()
+    return cls(header={}, body=body)
+
+  def encode(self) -> bytes:
+    header = {
+      b'Content-Length': str(len(self.body)).encode(),
+      **self.header,
+    }
+    header_bytes = b'\r\n'.join(b'%b: %b' % (k, v) for k, v in header.items())
+    return header_bytes + b'\r\n\r\n' + self.body
+
+
+Request: TypeAlias = dict[str, Any]
+Response: TypeAlias = Optional[dict[str, Any]]
 
 
 def get_tcp_data(s: socket.socket) -> Optional[bytes]:
@@ -21,14 +45,36 @@ def get_tcp_data(s: socket.socket) -> Optional[bytes]:
   return data
 
 
-def parse_data(data: bytes) -> Data:
-  header, body = data.split(b'\r\n\r\n', 1)
-  header = dict(
-    [k.decode(), v.decode()]
-    for line in header.split(b'\n')
-    for [k, v] in [line.split(b': ', 1)]
-  )
-  return Data(header=header, body=body.decode())
+def json_rpc_dict(d: dict[str, Any]) -> dict[str, Any]:
+  return {
+    'jsonrpc': '2.0',
+    **d,
+  }
+
+
+def handler_initialize(req: Request) -> Response:
+  return {
+    'result': {
+      'capabilities': {
+        'executeCommandProvider': {
+          'commands': [ 'format' ],
+        },
+      }
+    }
+  }
+
+
+handlers = {
+  'initialize': handler_initialize,
+}
+
+
+def handler(req: Request) -> Response:
+  fn = handlers.get(req.get('method'))  # type: ignore
+  if fn is None:
+    print(f'Unknown method: {req}')
+    return None
+  return fn(req)
 
 
 def main_tcp_server(port: int) -> None:
@@ -40,9 +86,18 @@ def main_tcp_server(port: int) -> None:
 
   with conn:
     print(f'Connected by {addr}')
-    while (data := get_tcp_data(conn)) is not None:
-      print(f'Received: {data}')
-      print(parse_data(data))
+    while (raw_data := get_tcp_data(conn)) is not None:
+      print(f'Received: {raw_data}')
+      data = Data.from_body_bytes_with_parse(raw_data)
+      req: dict[str, Any] = json.loads(data.body.decode())
+      print(f'Parsed: {req}')
+      id_str = req.get('id')
+      if id_str is not None:
+        res = handler(req)
+        print(f'Response: {res}')
+        if res:
+          res_data = Data.from_body_dict(json_rpc_dict(dict(res, id=id_str)))
+          conn.sendall(res_data.encode())
 
   print('Connection closed')
 
