@@ -1,6 +1,7 @@
 import argparse
 import json
 import socket
+import subprocess
 from typing import Any, Optional, Self, TypeAlias
 import pydantic
 
@@ -64,8 +65,24 @@ def handler_initialize(req: Request) -> Response:
   }
 
 
+def handler_workspace_executeCommand(req: Request) -> Response:
+  params = req.get('params', {})
+  command = params.get('command')
+  arguments = params.get('arguments', [])
+  if command == 'format':
+    filepath = arguments[0]
+    print(f'Formatting {filepath}')
+    subprocess.run(['go', 'fmt', filepath])
+    return {
+      'result': None,
+    }
+
+  print(f'Unknown command: {command}')
+
+
 handlers = {
   'initialize': handler_initialize,
+  'workspace/executeCommand': handler_workspace_executeCommand,
 }
 
 
