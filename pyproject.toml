@@ -1,0 +1,19 @@
+[project]
+name = "gofmtls"
+version = "0.1.0"
+description = "run go fmt via LS"
+authors = [
+    {name = "conao3", email = "conao3@gmail.com"},
+]
+dependencies = []
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
