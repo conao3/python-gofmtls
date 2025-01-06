@@ -1,6 +1,12 @@
 import argparse
 import socket
 from typing import Optional
+import pydantic
+
+class Data(pydantic.BaseModel):
+  header: dict[str, str]
+  body: str
+
 
 def get_tcp_data(s: socket.socket) -> Optional[bytes]:
   buffer_size = 1024
@@ -15,6 +21,16 @@ def get_tcp_data(s: socket.socket) -> Optional[bytes]:
   return data
 
 
+def parse_data(data: bytes) -> Data:
+  header, body = data.split(b'\r\n\r\n', 1)
+  header = dict(
+    [k.decode(), v.decode()]
+    for line in header.split(b'\n')
+    for [k, v] in [line.split(b': ', 1)]
+  )
+  return Data(header=header, body=body.decode())
+
+
 def main_tcp_server(port: int) -> None:
   print(f'Listening on localhost:{port}')
 
@@ -26,6 +42,7 @@ def main_tcp_server(port: int) -> None:
     print(f'Connected by {addr}')
     while (data := get_tcp_data(conn)) is not None:
       print(f'Received: {data}')
+      print(parse_data(data))
 
   print('Connection closed')
 
