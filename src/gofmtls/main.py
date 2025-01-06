@@ -1,5 +1,19 @@
 import argparse
 import socket
+from typing import Optional
+
+def get_tcp_data(s: socket.socket) -> Optional[bytes]:
+  buffer_size = 1024
+  data = b''
+  while True:
+    buf = s.recv(buffer_size)
+    if not buf:
+      return None
+    data += buf
+    if len(buf) < buffer_size:
+      break
+  return data
+
 
 def main_tcp_server(port: int) -> None:
   print(f'Listening on localhost:{port}')
@@ -10,12 +24,10 @@ def main_tcp_server(port: int) -> None:
 
   with conn:
     print(f'Connected by {addr}')
-    while True:
-      data = conn.recv(1024)
-      if not data:
-        break
-      conn.sendall(data)
-    print('Connection closed')
+    while (data := get_tcp_data(conn)) is not None:
+      print(f'Received: {data}')
+
+  print('Connection closed')
 
 
 def main_stdio_server() -> None:
