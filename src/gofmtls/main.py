@@ -1,7 +1,21 @@
 import argparse
+import socket
 
 def main_tcp_server(port: int) -> None:
-  pass
+  print(f'Listening on localhost:{port}')
+
+  s = socket.create_server(('localhost', port))
+  s.listen()
+  conn, addr = s.accept()
+
+  with conn:
+    print(f'Connected by {addr}')
+    while True:
+      data = conn.recv(1024)
+      if not data:
+        break
+      conn.sendall(data)
+    print('Connection closed')
 
 
 def main_stdio_server() -> None:
