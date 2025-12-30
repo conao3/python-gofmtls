@@ -1,17 +1,43 @@
 # gofmtls
 
-## Usage
+A lightweight Language Server that provides Go formatting via `go fmt`.
 
-### Run server
+## Overview
+
+gofmtls is a simple LSP server written in Python that exposes Go's `go fmt` command through the Language Server Protocol. It enables editor integration for formatting Go source files without requiring a full-featured Go language server.
+
+## Features
+
+- Minimal LSP implementation focused on formatting
+- TCP server mode for network-based editor connections
+- Execute command support for `format` operation
+
+## Requirements
+
+- Python 3.13 or later
+- Go toolchain (for `go fmt`)
+- PDM package manager
+
+## Installation
 
 ```bash
-$ pdm install
-$ pdm run gofmtls -p 15329
+pdm install
 ```
 
-### Connect from Editors (Emacs - Eglot)
+## Usage
 
-1. Add advice
+Start the server on a specified port:
+
+```bash
+pdm run gofmtls -p 15329
+```
+
+## Editor Integration
+
+### Emacs with Eglot
+
+1. Add the following advice to handle edge cases:
+
 ```elisp
 (leaf eglot
   :preface
@@ -22,13 +48,11 @@ $ pdm run gofmtls -p 15329
   (:around track-changes-fetch my/advice--track-changes-fetch))
 ```
 
-2. Open `sample/main.go`.
+2. Open a Go file (e.g., `sample/main.go`)
 
-3. Run eglot via `M-x eglot`
+3. Start Eglot with `M-x eglot` and connect to `localhost:15329`
 
-  Then, input `localhost:15329`.
-
-4. Run `format` command.
+4. Execute the format command:
 
 ```elisp
 (with-current-buffer "main.go"
@@ -36,3 +60,7 @@ $ pdm run gofmtls -p 15329
                               eglot--servers-by-project))))
     (eglot-execute server `(:command "format" :arguments [,buffer-file-name]))))
 ```
+
+## License
+
+Apache-2.0
