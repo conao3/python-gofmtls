@@ -5,7 +5,7 @@ description = "run go fmt via LS"
 authors = [
     {name = "conao3", email = "conao3@gmail.com"},
 ]
-dependencies = ["pydantic>=2.10.4"]
+dependencies = ["pydantic>=2.14.1"]
 requires-python = ">=3.13"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -23,5 +23,5 @@ distribution = true
 
 [dependency-groups]
 dev = [
-    "ruff>=0.8.6",
+    "ruff>=0.17.3",
 ]
